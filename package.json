@@ -1,8 +1,11 @@
 {
-  "name": "opencode-ralph",
+  "name": "oc-ralph",
+  "version": "0.1.0",
   "type": "module",
-  "private": true,
   "main": "src/index.tsx",
+  "bin": {
+    "oc-ralph": "src/index.tsx"
+  },
   "scripts": {
     "start": "bun run src/index.tsx",
     "dev": "bun --watch run src/index.tsx",

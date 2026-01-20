@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 // Entry point for OpenCode Loop TUI
 // Handles CLI args, component registration, and renderer setup
 
@@ -35,16 +36,21 @@ function parseArgs(): { promptPath: string; maxRuns: number | 'infinite' } {
 OpenCode Loop TUI - Batch run prompts against OpenCode sessions
 
 Usage:
-  bun run start --prompt <file> [--runs <count>]
+  oc-ralph --prompt <file> [--runs <count>]
 
 Options:
   -p, --prompt <file>   Path to prompt file (required)
   -r, --runs <count>    Number of runs (default: infinite until quit)
   -h, --help            Show this help message
 
+Keybinds:
+  ↑/↓                   Navigate between runs
+  a                     Attach to session in native terminal
+  q                     Quit (with confirmation if busy)
+
 Examples:
-  bun run start --prompt ./improve.md
-  bun run start --prompt ./test.md --runs 5
+  oc-ralph --prompt ./improve.md
+  oc-ralph -p ./test.md -r 5
 `)
       process.exit(0)
     }
