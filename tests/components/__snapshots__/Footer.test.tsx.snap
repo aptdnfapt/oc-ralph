@@ -1,7 +1,7 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
 exports[`Footer matches snapshot 1`] = `
-" q: quit                                
+" ↑↓: navigate  a: attach  q: quit       
                                         
                                         
 "

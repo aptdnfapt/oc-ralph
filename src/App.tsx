@@ -161,6 +161,39 @@ export function App({ promptPath, promptContent, maxRuns }: AppProps) {
     renderer.destroy()
   }, [pty, server, renderer])
 
+  // Native attach - suspend TUI, run opencode attach in native terminal, resume
+  const nativeAttach = useCallback(async (sessionId: string) => {
+    if (!server.port) return
+
+    // Kill embedded PTY first
+    pty.kill()
+
+    // Suspend TUI to release terminal
+    renderer.suspend()
+
+    // Run opencode attach in native terminal with inherited stdio
+    const proc = Bun.spawn([
+      "opencode",
+      "attach",
+      `http://localhost:${server.port}`,
+      "-s",
+      sessionId,
+    ], {
+      stdin: "inherit",
+      stdout: "inherit",
+      stderr: "inherit",
+    })
+
+    // Wait for user to exit (Ctrl+C or natural exit)
+    await proc.exited
+
+    // Resume TUI
+    renderer.resume()
+
+    // Re-attach PTY to continue streaming
+    pty.attach(sessionId)
+  }, [server.port, pty, renderer])
+
   // Keyboard handling
   useKeyboard((key) => {
     // Quit dialog handling
@@ -181,6 +214,28 @@ export function App({ promptPath, promptContent, maxRuns }: AppProps) {
         setShowQuitDialog(true)
       } else {
         cleanup()
+      }
+    }
+
+    // Arrow key navigation
+    if (key.name === 'up' && runs.length > 0) {
+      const newIndex = Math.max(0, currentIndex - 1)
+      if (newIndex !== currentIndex) {
+        handleSelectRun(newIndex)
+      }
+    }
+    if (key.name === 'down' && runs.length > 0) {
+      const newIndex = Math.min(runs.length - 1, currentIndex + 1)
+      if (newIndex !== currentIndex) {
+        handleSelectRun(newIndex)
+      }
+    }
+
+    // 'A' key - attach to current session in native terminal
+    if (key.name === 'a' && runs.length > 0 && server.port) {
+      const currentRun = runs[currentIndex]
+      if (currentRun) {
+        nativeAttach(currentRun.id)
       }
     }
   })

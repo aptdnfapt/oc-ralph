@@ -53,6 +53,12 @@ export function usePTY(
       ptyRef.current = null
     }
 
+    // Clear terminal immediately to avoid stale content
+    const term = terminalRef.current
+    if (term && term.persistent) {
+      term.reset()
+    }
+
     // Spawn new PTY attached to the session
     // Command: opencode attach http://localhost:PORT -s SESSION_ID
     const pty = spawn("opencode", [

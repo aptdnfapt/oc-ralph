@@ -10,7 +10,7 @@ export function Footer() {
       }}
     >
       <text fg="#8b949e">
-        <span fg="#58a6ff">q</span>: quit
+        <span fg="#58a6ff">↑↓</span>: navigate  <span fg="#58a6ff">a</span>: attach  <span fg="#58a6ff">q</span>: quit
       </text>
     </box>
   )
