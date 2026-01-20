@@ -1,0 +1,17 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Sidebar matches snapshot with multiple runs 1`] = `
+"┌──────────────────┐     
+│ Sessions         │     
+│ Run #1 (30s) ✓   │     
+│ Run #2 (32s) ✓   │     
+│ Run #3 ...       │     
+└──────────────────┘     
+                         
+                         
+                         
+                         
+                         
+                         
+"
+`;

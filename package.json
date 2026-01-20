@@ -1,0 +1,24 @@
+{
+  "name": "opencode-ralph",
+  "type": "module",
+  "private": true,
+  "main": "src/index.tsx",
+  "scripts": {
+    "start": "bun run src/index.tsx",
+    "dev": "bun --watch run src/index.tsx",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@opencode-ai/sdk": "latest",
+    "@opentui/core": "latest",
+    "@opentui/react": "latest",
+    "bun-pty": "^0.4.8",
+    "ghostty-opentui": "latest",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/react": "^19.0.0",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,20 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`QuitDialog matches snapshot 1`] = `
+"                                                  
+                                                  
+                                                  
+        ┌─────────────────────────────────┐       
+        │                                 │       
+        │ Quit? Session still running     │       
+        │                                 │       
+        │        [Yes]    ┌────────┐      │       
+        │                 │  [No]  │      │       
+        │                 └────────┘      │       
+        │                                 │       
+        └─────────────────────────────────┘       
+                                                  
+                                                  
+                                                  
+"
+`;
