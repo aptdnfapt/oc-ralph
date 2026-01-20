@@ -81,9 +81,14 @@ export function App({ promptPath, promptContent, maxRuns }: AppProps) {
         status: 'busy',
       }
 
-      // 3. Add to runs and select it
+      // 3. Add to runs
       setRuns(prev => [...prev, newRun])
-      setCurrentIndex(runs.length)
+      
+      // 4. Only auto-switch view if user is on the latest run (not browsing history)
+      const isViewingLatest = currentIndex === runs.length - 1 || runs.length === 0
+      if (isViewingLatest) {
+        setCurrentIndex(runs.length)
+      }
 
       // 4. Attach PTY immediately (before prompt)
       pty.attach(sessionId)
@@ -133,17 +138,17 @@ export function App({ promptPath, promptContent, maxRuns }: AppProps) {
     return () => clearInterval(interval)
   }, [runs.length, session])
 
-  // Auto-advance when current run becomes idle
+  // Auto-advance when LATEST run becomes idle (not the viewed run)
   useEffect(() => {
-    const currentRun = runs[currentIndex]
-    if (currentRun?.status === 'idle') {
+    const latestRun = runs[runs.length - 1]
+    if (latestRun?.status === 'idle') {
       // Small delay before starting next run
       const timeout = setTimeout(() => {
         startNextRun()
       }, 500)
       return () => clearTimeout(timeout)
     }
-  }, [runs, currentIndex, startNextRun])
+  }, [runs, startNextRun])
 
   // Handle session selection
   const handleSelectRun = useCallback((index: number) => {
