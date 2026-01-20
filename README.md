@@ -31,10 +31,9 @@ Ralph is the outer shell around your agent. This tool gives you visibility into 
 ## Install
 
 ```bash
-git clone git@github.com:aptdnfapt/oc-ralph.git
-cd oc-ralph
-bun install
-bun link
+npm i -g oc-ralph
+# or
+bun install -g oc-ralph
 ```
 
 ## Usage
