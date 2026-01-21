@@ -2,11 +2,14 @@
   "name": "oc-ralph",
   "version": "0.1.0",
   "type": "module",
-  "main": "src/index.tsx",
+  "main": "dist/oc-ralph",
   "bin": {
-    "oc-ralph": "src/index.tsx"
+    "oc-ralph": "dist/oc-ralph"
   },
   "scripts": {
+    "build": "bun run build:compile",
+    "build:compile": "bun build src/index.tsx --compile --no-compile-autoload-bunfig --no-compile-autoload-dotenv --outfile dist/oc-ralph",
+    "postinstall": "bun run build && chmod +x dist/oc-ralph",
     "start": "bun run src/index.tsx",
     "dev": "bun --watch run src/index.tsx",
     "test": "bun test"
