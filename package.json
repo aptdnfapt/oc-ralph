@@ -9,7 +9,7 @@
   "scripts": {
     "build": "bun run build:compile",
     "build:compile": "bun build src/index.tsx --compile --no-compile-autoload-bunfig --no-compile-autoload-dotenv --outfile dist/oc-ralph",
-    "postinstall": "bun run build && chmod +x dist/oc-ralph",
+    "prepublishOnly": "bun run build && chmod +x dist/oc-ralph",
     "start": "bun run src/index.tsx",
     "dev": "bun --watch run src/index.tsx",
     "test": "bun test"

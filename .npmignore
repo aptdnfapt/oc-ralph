@@ -1,0 +1,13 @@
+# Source code
+src/
+node_modules/
+
+# Config files
+.gitignore
+opencode.jsonc
+tsconfig.json
+bun.lock
+
+# Documentation
+README.md
+test-prompt.md
