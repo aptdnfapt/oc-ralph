@@ -1,15 +1,15 @@
 {
   "name": "oc-ralph",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "main": "dist/oc-ralph",
   "bin": {
     "oc-ralph": "dist/oc-ralph"
   },
   "scripts": {
-    "build": "bun run build:compile",
-    "build:compile": "bun build src/index.tsx --compile --no-compile-autoload-bunfig --no-compile-autoload-dotenv --outfile dist/oc-ralph",
-    "prepublishOnly": "bun run build && chmod +x dist/oc-ralph",
+    "build": "bun run build:bundle",
+    "build:bundle": "bun build src/index.tsx --outdir dist --target bun && cp -r node_modules/ghostty-opentui/dist/linux-x64/*.node dist/ 2>/dev/null || true",
+    "prepublishOnly": "bun run build && echo '#!/usr/bin/env bun' > dist/oc-ralph && echo 'import(\"./index.js\")' >> dist/oc-ralph && chmod +x dist/oc-ralph",
     "start": "bun run src/index.tsx",
     "dev": "bun --watch run src/index.tsx",
     "test": "bun test"
