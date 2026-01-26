@@ -9,12 +9,15 @@ import { Sidebar } from "./components/Sidebar.tsx"
 import { PTYView } from "./components/PTYView.tsx"
 import { Footer } from "./components/Footer.tsx"
 import { QuitDialog } from "./components/QuitDialog.tsx"
+import { ModelSelectDialog } from "./components/ModelSelectDialog.tsx"
 
 import { useServer } from "./hooks/useServer.ts"
 import { useSession } from "./hooks/useSession.ts"
 import { usePTY } from "./hooks/usePTY.ts"
+import { useModels } from "./hooks/useModels.ts"
+import { useModelStore } from "./hooks/useModelStore.ts"
 
-import type { RunInfo } from "./types.ts"
+import type { RunInfo, ModelSelection } from "./types.ts"
 
 // Layout constants
 const SIDEBAR_WIDTH = 20
@@ -25,13 +28,16 @@ interface AppProps {
   promptPath: string
   promptContent: string
   maxRuns: number | 'infinite'
+  initialModel: ModelSelection | null  // From CLI -m flag, null means show dialog
 }
 
-export function App({ promptPath, promptContent, maxRuns }: AppProps) {
+export function App({ promptPath, promptContent, maxRuns, initialModel }: AppProps) {
   // State
   const [runs, setRuns] = useState<RunInfo[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [showQuitDialog, setShowQuitDialog] = useState(false)
+  const [showModelDialog, setShowModelDialog] = useState(false)
+  const [selectedModel, setSelectedModel] = useState<ModelSelection | null>(initialModel)
   const [error, setError] = useState<string | null>(null)
 
   // Refs
@@ -46,7 +52,9 @@ export function App({ promptPath, promptContent, maxRuns }: AppProps) {
   // Hooks
   const renderer = useRenderer() as CliRenderer
   const server = useServer()
-  const session = useSession(server.port, promptContent)
+  const models = useModels(server.port)
+  const modelStore = useModelStore()
+  const session = useSession(server.port, promptContent, selectedModel)
   const pty = usePTY(server.port, terminalRef, cols, rows)
 
   // Resize PTY when dimensions change
@@ -102,12 +110,19 @@ export function App({ promptPath, promptContent, maxRuns }: AppProps) {
     }
   }, [runs.length, maxRuns, session, pty])
 
-  // Start first run when server is ready
+  // Show model dialog when server is ready and no model selected (interactive mode)
   useEffect(() => {
-    if (server.isReady && runs.length === 0) {
+    if (server.isReady && !selectedModel && !models.isLoading && models.providers.length > 0) {
+      setShowModelDialog(true)
+    }
+  }, [server.isReady, selectedModel, models.isLoading, models.providers.length])
+
+  // Start first run when server is ready AND model is selected
+  useEffect(() => {
+    if (server.isReady && runs.length === 0 && selectedModel) {
       startNextRun()
     }
-  }, [server.isReady, runs.length, startNextRun])
+  }, [server.isReady, runs.length, startNextRun, selectedModel])
 
   // Poll status and auto-advance
   useEffect(() => {
@@ -254,12 +269,30 @@ export function App({ promptPath, promptContent, maxRuns }: AppProps) {
     setShowQuitDialog(false)
   }, [])
 
+  // Model selection handlers
+  const handleModelSelect = useCallback((model: ModelSelection) => {
+    setSelectedModel(model)
+    setShowModelDialog(false)
+    // Add to recent models
+    modelStore.addRecent(model)
+  }, [modelStore])
+
+  const handleModelToggleFavorite = useCallback((model: ModelSelection) => {
+    modelStore.toggleFavorite(model)
+  }, [modelStore])
+
+  const handleModelCancel = useCallback(() => {
+    // If no model selected yet, can't cancel - must select one
+    if (!selectedModel) return
+    setShowModelDialog(false)
+  }, [selectedModel])
+
   // Show error state
-  if (error || server.error) {
+  if (error || server.error || models.error) {
     return (
       <box style={{ flexDirection: "column", flexGrow: 1, padding: 1 }}>
         <box style={{ border: true, borderColor: "#ff7b72", padding: 1 }}>
-          <text fg="#ff7b72">Error: {error || server.error}</text>
+          <text fg="#ff7b72">Error: {error || server.error || models.error}</text>
         </box>
         <box style={{ height: 1, marginTop: 1 }}>
           <text fg="#8b949e">Press q to quit</text>
@@ -274,6 +307,29 @@ export function App({ promptPath, promptContent, maxRuns }: AppProps) {
       <box style={{ flexDirection: "column", flexGrow: 1, justifyContent: "center", alignItems: "center" }}>
         <text fg="#8b949e">Starting server...</text>
       </box>
+    )
+  }
+
+  // Show loading models state (when no initialModel provided)
+  if (!selectedModel && models.isLoading) {
+    return (
+      <box style={{ flexDirection: "column", flexGrow: 1, justifyContent: "center", alignItems: "center" }}>
+        <text fg="#8b949e">Loading models...</text>
+      </box>
+    )
+  }
+
+  // Show model selection dialog
+  if (showModelDialog) {
+    return (
+      <ModelSelectDialog
+        providers={models.providers}
+        store={modelStore.store}
+        currentModel={selectedModel}
+        onSelect={handleModelSelect}
+        onToggleFavorite={handleModelToggleFavorite}
+        onCancel={handleModelCancel}
+      />
     )
   }
 

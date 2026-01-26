@@ -1,5 +1,34 @@
 // Core types for the OpenCode Loop TUI
 
+// Model selection types
+export interface ModelSelection {
+  providerID: string
+  modelID: string
+}
+
+export interface ModelInfo {
+  id: string
+  name: string
+  reasoning: boolean
+  cost?: {
+    input: number
+    output: number
+  }
+  status?: "alpha" | "beta" | "deprecated"
+}
+
+export interface ProviderInfo {
+  id: string
+  name: string
+  models: Record<string, ModelInfo>
+}
+
+export interface ModelStore {
+  recent: ModelSelection[]
+  favorite: ModelSelection[]
+  variant: Record<string, string>
+}
+
 // Represents a single batch run session
 export interface RunInfo {
   id: string              // Session ID (e.g., "ses_xxx")

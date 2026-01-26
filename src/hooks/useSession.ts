@@ -1,7 +1,7 @@
 // Hook for SDK operations: create session, send prompt, poll status
 import { useState, useRef, useCallback, useEffect } from "react"
 import { createOpencodeClient, type OpencodeClient } from "@opencode-ai/sdk"
-import type { SessionStatus } from "../types.ts"
+import type { SessionStatus, ModelSelection } from "../types.ts"
 
 interface UseSessionResult {
   createSession: () => Promise<string>             // Create session, returns sessionId
@@ -12,7 +12,8 @@ interface UseSessionResult {
 
 export function useSession(
   port: number | null,
-  promptContent: string
+  promptContent: string,
+  model: ModelSelection | null
 ): UseSessionResult {
   const [error, setError] = useState<string | null>(null)
   const clientRef = useRef<OpencodeClient | null>(null)
@@ -61,19 +62,33 @@ export function useSession(
   const sendPrompt = useCallback((sessionId: string) => {
     if (!clientRef.current) return
 
+    // Build prompt body with optional model
+    const body: {
+      parts: { type: "text"; text: string }[]
+      model?: { providerID: string; modelID: string }
+    } = {
+      parts: [{ type: "text", text: promptContent }],
+    }
+
+    // Add model if specified
+    if (model) {
+      body.model = {
+        providerID: model.providerID,
+        modelID: model.modelID,
+      }
+    }
+
     // Don't await - let it run in background
     clientRef.current.session.prompt({
       path: { id: sessionId },
-      body: {
-        parts: [{ type: "text", text: promptContent }],
-      },
+      body,
     }).catch((err) => {
       console.error("Prompt error:", err)
     })
 
     // Start polling for status
     startPolling(sessionId)
-  }, [promptContent])
+  }, [promptContent, model])
 
   // Start polling status for a session
   const startPolling = (sessionId: string) => {

@@ -12,11 +12,12 @@ import { App } from "./App.tsx"
 extend({ "ghostty-terminal": GhosttyTerminalRenderable })
 
 // Parse CLI arguments
-function parseArgs(): { promptPath: string; maxRuns: number | 'infinite' } {
+function parseArgs(): { promptPath: string; maxRuns: number | 'infinite'; model: string | null } {
   const args = Bun.argv.slice(2)  // Skip bun and script path
   
   let promptPath: string | null = null
   let maxRuns: number | 'infinite' = 'infinite'
+  let model: string | null = null
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
@@ -31,17 +32,22 @@ function parseArgs(): { promptPath: string; maxRuns: number | 'infinite' } {
         maxRuns = parsed
       }
       i++
+    } else if ((arg === '--model' || arg === '-m') && nextArg) {
+      model = nextArg
+      i++
     } else if (arg === '--help' || arg === '-h') {
       console.log(`
 OpenCode Loop TUI - Batch run prompts against OpenCode sessions
 
 Usage:
-  oc-ralph --prompt <file> [--runs <count>]
+  oc-ralph --prompt <file> [--runs <count>] [--model <provider/model>]
 
 Options:
-  -p, --prompt <file>   Path to prompt file (required)
-  -r, --runs <count>    Number of runs (default: infinite until quit)
-  -h, --help            Show this help message
+  -p, --prompt <file>          Path to prompt file (required)
+  -r, --runs <count>           Number of runs (default: infinite until quit)
+  -m, --model <provider/model> Model to use (e.g., anthropic/claude-sonnet-4-20250514)
+                               If not specified, shows model selection dialog on start
+  -h, --help                   Show this help message
 
 Keybinds:
   ↑/↓                   Navigate between runs
@@ -51,6 +57,7 @@ Keybinds:
 Examples:
   oc-ralph --prompt ./improve.md
   oc-ralph -p ./test.md -r 5
+  oc-ralph -p ./test.md -m anthropic/claude-sonnet-4-20250514
 `)
       process.exit(0)
     }
@@ -62,7 +69,7 @@ Examples:
     process.exit(1)
   }
 
-  return { promptPath, maxRuns }
+  return { promptPath, maxRuns, model }
 }
 
 // Validate prompt file exists and read content
@@ -77,13 +84,36 @@ async function loadPrompt(promptPath: string): Promise<string> {
   return await file.text()
 }
 
+// Parse model string like "provider/modelId"
+function parseModel(modelStr: string): { providerID: string; modelID: string } | null {
+  const [providerID, ...rest] = modelStr.split("/")
+  if (!providerID || rest.length === 0) {
+    return null
+  }
+  return {
+    providerID,
+    modelID: rest.join("/"), // Handle model IDs with slashes
+  }
+}
+
 // Main entry
 async function main() {
   // Parse args
-  const { promptPath, maxRuns } = parseArgs()
+  const { promptPath, maxRuns, model } = parseArgs()
 
   // Load prompt content
   const promptContent = await loadPrompt(promptPath)
+
+  // Parse model if provided
+  let initialModel: { providerID: string; modelID: string } | null = null
+  if (model) {
+    initialModel = parseModel(model)
+    if (!initialModel) {
+      console.error(`Error: Invalid model format: ${model}`)
+      console.error('Expected format: provider/modelId (e.g., anthropic/claude-sonnet-4-20250514)')
+      process.exit(1)
+    }
+  }
 
   // Create renderer with mouse support, handle Ctrl+C ourselves
   const renderer = await createCliRenderer({
@@ -97,6 +127,7 @@ async function main() {
       promptPath={promptPath}
       promptContent={promptContent}
       maxRuns={maxRuns}
+      initialModel={initialModel}
     />
   )
 }
