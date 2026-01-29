@@ -29,6 +29,15 @@ export interface ModelStore {
   variant: Record<string, string>
 }
 
+// Agent types
+export interface AgentInfo {
+  name: string
+  description?: string
+  mode: "subagent" | "primary" | "all"
+  builtIn: boolean
+  color?: string
+}
+
 // Represents a single batch run session
 export interface RunInfo {
   id: string              // Session ID (e.g., "ses_xxx")

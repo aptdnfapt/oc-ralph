@@ -12,12 +12,13 @@ import { App } from "./App.tsx"
 extend({ "ghostty-terminal": GhosttyTerminalRenderable })
 
 // Parse CLI arguments
-function parseArgs(): { promptPath: string; maxRuns: number | 'infinite'; model: string | null } {
+function parseArgs(): { promptPath: string; maxRuns: number | 'infinite'; model: string | null; agent: string | null } {
   const args = Bun.argv.slice(2)  // Skip bun and script path
   
   let promptPath: string | null = null
   let maxRuns: number | 'infinite' = 'infinite'
   let model: string | null = null
+  let agent: string | null = null
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
@@ -35,18 +36,23 @@ function parseArgs(): { promptPath: string; maxRuns: number | 'infinite'; model:
     } else if ((arg === '--model' || arg === '-m') && nextArg) {
       model = nextArg
       i++
+    } else if ((arg === '--agent' || arg === '-a') && nextArg) {
+      agent = nextArg
+      i++
     } else if (arg === '--help' || arg === '-h') {
       console.log(`
 OpenCode Loop TUI - Batch run prompts against OpenCode sessions
 
 Usage:
-  oc-ralph --prompt <file> [--runs <count>] [--model <provider/model>]
+  oc-ralph --prompt <file> [--runs <count>] [--model <provider/model>] [--agent <name>]
 
 Options:
   -p, --prompt <file>          Path to prompt file (required)
   -r, --runs <count>           Number of runs (default: infinite until quit)
   -m, --model <provider/model> Model to use (e.g., anthropic/claude-sonnet-4-20250514)
                                If not specified, shows model selection dialog on start
+  -a, --agent <name>           Agent to use (e.g., code, default)
+                               If not specified, shows agent selection dialog on start
   -h, --help                   Show this help message
 
 Keybinds:
@@ -58,6 +64,7 @@ Examples:
   oc-ralph --prompt ./improve.md
   oc-ralph -p ./test.md -r 5
   oc-ralph -p ./test.md -m anthropic/claude-sonnet-4-20250514
+  oc-ralph -p ./test.md -m anthropic/claude-sonnet-4-20250514 -a code
 `)
       process.exit(0)
     }
@@ -69,7 +76,7 @@ Examples:
     process.exit(1)
   }
 
-  return { promptPath, maxRuns, model }
+  return { promptPath, maxRuns, model, agent }
 }
 
 // Validate prompt file exists and read content
@@ -99,7 +106,7 @@ function parseModel(modelStr: string): { providerID: string; modelID: string } |
 // Main entry
 async function main() {
   // Parse args
-  const { promptPath, maxRuns, model } = parseArgs()
+  const { promptPath, maxRuns, model, agent } = parseArgs()
 
   // Load prompt content
   const promptContent = await loadPrompt(promptPath)
@@ -128,6 +135,7 @@ async function main() {
       promptContent={promptContent}
       maxRuns={maxRuns}
       initialModel={initialModel}
+      initialAgent={agent}
     />
   )
 }

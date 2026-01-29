@@ -10,12 +10,14 @@ import { PTYView } from "./components/PTYView.tsx"
 import { Footer } from "./components/Footer.tsx"
 import { QuitDialog } from "./components/QuitDialog.tsx"
 import { ModelSelectDialog } from "./components/ModelSelectDialog.tsx"
+import { AgentSelectDialog } from "./components/AgentSelectDialog.tsx"
 
 import { useServer } from "./hooks/useServer.ts"
 import { useSession } from "./hooks/useSession.ts"
 import { usePTY } from "./hooks/usePTY.ts"
 import { useModels } from "./hooks/useModels.ts"
 import { useModelStore } from "./hooks/useModelStore.ts"
+import { useAgents } from "./hooks/useAgents.ts"
 
 import type { RunInfo, ModelSelection } from "./types.ts"
 
@@ -29,15 +31,18 @@ interface AppProps {
   promptContent: string
   maxRuns: number | 'infinite'
   initialModel: ModelSelection | null  // From CLI -m flag, null means show dialog
+  initialAgent: string | null          // From CLI -a flag, null means show dialog
 }
 
-export function App({ promptPath, promptContent, maxRuns, initialModel }: AppProps) {
+export function App({ promptPath, promptContent, maxRuns, initialModel, initialAgent }: AppProps) {
   // State
   const [runs, setRuns] = useState<RunInfo[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [showQuitDialog, setShowQuitDialog] = useState(false)
   const [showModelDialog, setShowModelDialog] = useState(false)
+  const [showAgentDialog, setShowAgentDialog] = useState(false)
   const [selectedModel, setSelectedModel] = useState<ModelSelection | null>(initialModel)
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(initialAgent)
   const [error, setError] = useState<string | null>(null)
 
   // Refs
@@ -54,7 +59,8 @@ export function App({ promptPath, promptContent, maxRuns, initialModel }: AppPro
   const server = useServer()
   const models = useModels(server.port)
   const modelStore = useModelStore()
-  const session = useSession(server.port, promptContent, selectedModel)
+  const agents = useAgents(server.port)
+  const session = useSession(server.port, promptContent, selectedModel, selectedAgent)
   const pty = usePTY(server.port, terminalRef, cols, rows)
 
   // Resize PTY when dimensions change
@@ -117,12 +123,19 @@ export function App({ promptPath, promptContent, maxRuns, initialModel }: AppPro
     }
   }, [server.isReady, selectedModel, models.isLoading, models.providers.length])
 
-  // Start first run when server is ready AND model is selected
+  // Show agent dialog after model is selected and no agent selected (interactive mode)
   useEffect(() => {
-    if (server.isReady && runs.length === 0 && selectedModel) {
+    if (server.isReady && selectedModel && !selectedAgent && !agents.isLoading && agents.agents.length > 0 && !showModelDialog) {
+      setShowAgentDialog(true)
+    }
+  }, [server.isReady, selectedModel, selectedAgent, agents.isLoading, agents.agents.length, showModelDialog])
+
+  // Start first run when server is ready AND model AND agent are selected
+  useEffect(() => {
+    if (server.isReady && runs.length === 0 && selectedModel && selectedAgent) {
       startNextRun()
     }
-  }, [server.isReady, runs.length, startNextRun, selectedModel])
+  }, [server.isReady, runs.length, startNextRun, selectedModel, selectedAgent])
 
   // Poll status and auto-advance
   useEffect(() => {
@@ -287,12 +300,24 @@ export function App({ promptPath, promptContent, maxRuns, initialModel }: AppPro
     setShowModelDialog(false)
   }, [selectedModel])
 
+  // Agent selection handlers
+  const handleAgentSelect = useCallback((agentName: string) => {
+    setSelectedAgent(agentName)
+    setShowAgentDialog(false)
+  }, [])
+
+  const handleAgentCancel = useCallback(() => {
+    // If no agent selected yet, can't cancel - must select one
+    if (!selectedAgent) return
+    setShowAgentDialog(false)
+  }, [selectedAgent])
+
   // Show error state
-  if (error || server.error || models.error) {
+  if (error || server.error || models.error || agents.error) {
     return (
       <box style={{ flexDirection: "column", flexGrow: 1, padding: 1 }}>
         <box style={{ border: true, borderColor: "#ff7b72", padding: 1 }}>
-          <text fg="#ff7b72">Error: {error || server.error || models.error}</text>
+          <text fg="#ff7b72">Error: {error || server.error || models.error || agents.error}</text>
         </box>
         <box style={{ height: 1, marginTop: 1 }}>
           <text fg="#8b949e">Press q to quit</text>
@@ -330,6 +355,27 @@ export function App({ promptPath, promptContent, maxRuns, initialModel }: AppPro
         onToggleFavorite={handleModelToggleFavorite}
         onCancel={handleModelCancel}
       />
+    )
+  }
+
+  // Show agent selection dialog (after model is selected)
+  if (showAgentDialog) {
+    return (
+      <AgentSelectDialog
+        agents={agents.agents}
+        currentAgent={selectedAgent}
+        onSelect={handleAgentSelect}
+        onCancel={handleAgentCancel}
+      />
+    )
+  }
+
+  // Show loading agents state
+  if (selectedModel && !selectedAgent && agents.isLoading) {
+    return (
+      <box style={{ flexDirection: "column", flexGrow: 1, justifyContent: "center", alignItems: "center" }}>
+        <text fg="#8b949e">Loading agents...</text>
+      </box>
     )
   }
 

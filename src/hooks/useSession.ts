@@ -13,7 +13,8 @@ interface UseSessionResult {
 export function useSession(
   port: number | null,
   promptContent: string,
-  model: ModelSelection | null
+  model: ModelSelection | null,
+  agent: string | null
 ): UseSessionResult {
   const [error, setError] = useState<string | null>(null)
   const clientRef = useRef<OpencodeClient | null>(null)
@@ -62,10 +63,11 @@ export function useSession(
   const sendPrompt = useCallback((sessionId: string) => {
     if (!clientRef.current) return
 
-    // Build prompt body with optional model
+    // Build prompt body with optional model and agent
     const body: {
       parts: { type: "text"; text: string }[]
       model?: { providerID: string; modelID: string }
+      agent?: string
     } = {
       parts: [{ type: "text", text: promptContent }],
     }
@@ -78,6 +80,11 @@ export function useSession(
       }
     }
 
+    // Add agent if specified
+    if (agent) {
+      body.agent = agent
+    }
+
     // Don't await - let it run in background
     clientRef.current.session.prompt({
       path: { id: sessionId },
@@ -88,7 +95,7 @@ export function useSession(
 
     // Start polling for status
     startPolling(sessionId)
-  }, [promptContent, model])
+  }, [promptContent, model, agent])
 
   // Start polling status for a session
   const startPolling = (sessionId: string) => {
